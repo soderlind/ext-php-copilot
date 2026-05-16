@@ -530,7 +530,7 @@ dependencies = [
 
 [[package]]
 name = "ext_php_copilot"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ext-php-rs",
  "github-copilot-sdk",

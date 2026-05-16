@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-05-16
+
+### Fixed
+
+- Replaced Rust test-binary linking in CI with `cargo check --all-targets --all-features` for PHP extension crates.
+- Scoped the dynamic lookup linker flag to macOS so Linux builds use platform-appropriate linker flags.
+
 ## [0.1.0] - 2026-05-16
 
 ### Added
