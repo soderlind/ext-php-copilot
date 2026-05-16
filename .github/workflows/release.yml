@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to publish, for example v0.1.1'
+        required: true
+        type: string
+      copilot_cli_version:
+        description: 'GitHub Copilot CLI version to embed'
+        required: true
+        default: '1.0.15'
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  COPILOT_CLI_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.copilot_cli_version || '1.0.15' }}
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    name: ${{ matrix.platform }} ${{ matrix.variant }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            variant: no-cli
+            embedded: false
+            library: target/release/libext_php_copilot.so
+          - os: ubuntu-latest
+            platform: linux
+            variant: embedded-cli
+            embedded: true
+            library: target/release/libext_php_copilot.so
+          - os: macos-latest
+            platform: macos
+            variant: no-cli
+            embedded: false
+            library: target/release/libext_php_copilot.dylib
+          - os: macos-latest
+            platform: macos
+            variant: embedded-cli
+            embedded: true
+            library: target/release/libext_php_copilot.dylib
+          - os: windows-latest
+            platform: windows
+            variant: no-cli
+            embedded: false
+            library: target/release/ext_php_copilot.dll
+          - os: windows-latest
+            platform: windows
+            variant: embedded-cli
+            embedded: true
+            library: target/release/ext_php_copilot.dll
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Build release extension without embedded CLI
+        if: ${{ !matrix.embedded }}
+        run: cargo build --release --all-features
+
+      - name: Build release extension with embedded CLI
+        if: ${{ matrix.embedded }}
+        run: cargo build --release --all-features
+        env:
+          COPILOT_CLI_VERSION: ${{ env.COPILOT_CLI_VERSION }}
+
+      - name: Package release asset
+        id: package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $assetName = "ext-php-copilot-${{ env.RELEASE_TAG }}-${{ matrix.platform }}-${{ matrix.variant }}"
+          $packageDir = Join-Path 'dist' $assetName
+          New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
+
+          Copy-Item '${{ matrix.library }}' $packageDir
+          Copy-Item 'README.md' $packageDir
+          Copy-Item 'CHANGELOG.md' $packageDir
+          Copy-Item 'composer.json' $packageDir
+          Copy-Item 'php' (Join-Path $packageDir 'php') -Recurse
+          Copy-Item 'stubs' (Join-Path $packageDir 'stubs') -Recurse
+          Copy-Item 'docs' (Join-Path $packageDir 'docs') -Recurse
+
+          @(
+            'ext-php-copilot release asset',
+            "version=${{ env.RELEASE_TAG }}",
+            "platform=${{ matrix.platform }}",
+            "variant=${{ matrix.variant }}",
+            "embedded_cli=${{ matrix.embedded }}",
+            "copilot_cli_version=${{ env.COPILOT_CLI_VERSION }}",
+            '',
+            'Load the extension with php -d extension=/path/to/the/library file in this archive.',
+            'The no-cli variant requires COPILOT_CLI_PATH or a Copilot CLI available on PATH.',
+            'The embedded-cli variant bundles the GitHub Copilot CLI selected by COPILOT_CLI_VERSION.'
+          ) | Set-Content -Path (Join-Path $packageDir 'MANIFEST.txt') -Encoding UTF8
+
+          $zipPath = Join-Path 'dist' "$assetName.zip"
+          Compress-Archive -Path (Join-Path $packageDir '*') -DestinationPath $zipPath -Force
+          "asset_path=$zipPath" >> $env:GITHUB_OUTPUT
+          "asset_name=$assetName.zip" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.asset_name }}
+          path: ${{ steps.package.outputs.asset_path }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: dist/*.zip
+          fail_on_unmatched_files: true

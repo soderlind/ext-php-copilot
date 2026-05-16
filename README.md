@@ -57,6 +57,13 @@ The Copilot SDK supports embedded CLI targets for macOS arm64/x64, Linux arm64/x
 
 `cargo-php` is useful for install/stub workflows on macOS and Linux. Windows support should build through Cargo directly with PHP 8.3 development headers and `rust-lld`.
 
+## Release Artifacts
+
+Version tags build downloadable release archives for Linux, macOS, and Windows. Each OS gets two variants:
+
+- `no-cli`: requires `COPILOT_CLI_PATH` or a GitHub Copilot CLI available on `PATH`.
+- `embedded-cli`: embeds the GitHub Copilot CLI selected by `COPILOT_CLI_VERSION` in the release workflow.
+
 ## AI Contribution Attribution
 
 Assisted-by: GitHub Copilot
