@@ -49,7 +49,7 @@ The script loads `.env`, verifies authentication, sends one prompt, and stores l
 
 ## Usage Documentation
 
-See [docs/COPILOT.md](docs/COPILOT.md) for PHP wrapper usage, native extension methods, every supported option, and examples for each method.
+See [docs/README.md](docs/README.md) for PHP wrapper usage, native extension methods, every supported option, and examples for each method.
 
 ## Platform Support
 
