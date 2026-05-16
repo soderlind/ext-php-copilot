@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2026-05-16
+
+### Added
+
+- Added tag-driven release builds for Linux, macOS, and Windows with `no-cli` and `embedded-cli` archives.
+
+### Fixed
+
+- Made release packaging tolerate optional folders when publishing assets for older tags.
+
 ## [0.1.1] - 2026-05-16
 
 ### Fixed
