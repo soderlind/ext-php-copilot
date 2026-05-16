@@ -1,0 +1,26 @@
+name: Documentation issue
+description: Report missing, confusing, or incorrect documentation
+title: "Docs: "
+labels: [documentation]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page or file
+      placeholder: docs/COPILOT.md, README.md, examples/basic.php
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What should be improved?
+      description: Describe what is missing, unclear, or incorrect.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested wording or structure
+      description: Optional, but helpful if you already know what would make it clearer.
+    validations:
+      required: false

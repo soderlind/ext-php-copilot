@@ -1,0 +1,85 @@
+name: Bug report
+description: Report a reproducible problem with ext-php-copilot
+title: "Bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please include enough detail for someone else to reproduce it.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+      placeholder: Describe the problem you ran into.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact commands, PHP code, or configuration needed to reproduce the issue.
+      placeholder: |
+        1. Build with ...
+        2. Run ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: What happened instead? Include error messages or logs, but remove tokens and secrets.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ext-php-copilot version
+      placeholder: 0.1.1
+    validations:
+      required: true
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+      placeholder: 8.3.x, NTS/ZTS, debug/non-debug
+    validations:
+      required: true
+  - type: input
+    id: rust-version
+    attributes:
+      label: Rust version
+      placeholder: rustc --version
+    validations:
+      required: false
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS arm64
+        - macOS x64
+        - Linux arm64
+        - Linux x64
+        - Windows arm64
+        - Windows x64
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment details
+      description: Include webserver/CLI context, package manager, build flags, and whether you used embedded CLI or COPILOT_CLI_PATH. Do not include secrets.
+      placeholder: PHP-FPM, Apache, CLI, WordPress, composer, cargo build flags, COPILOT_CLI_VERSION, etc.
+    validations:
+      required: false

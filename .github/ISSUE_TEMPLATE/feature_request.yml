@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest an improvement or new capability
+title: "Feature: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to build or improve?
+      placeholder: Describe the app, workflow, or limitation this feature would help with.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What API, behavior, or documentation would you like to see?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds or alternate approaches have you tried?
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - PHP wrapper
+        - Native extension API
+        - Authentication
+        - Build or packaging
+        - CI or release automation
+        - Documentation
+        - Examples
+        - Other
+    validations:
+      required: true
