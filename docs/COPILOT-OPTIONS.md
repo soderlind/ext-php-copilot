@@ -1,30 +1,51 @@
-# Copilot Options Reference
+<!-- markdownlint-disable MD013 MD024 -->
 
-Most option names accept camelCase. Many extension-specific keys also accept snake_case aliases.
+# Options Reference
+
+## Summary
+
+Native API methods accept JSON-encoded option objects. Wrapper methods accept PHP arrays and encode them before calling the native extension.
+
+Most option names use camelCase. Many extension-specific keys also accept snake_case aliases.
+
+## Option Groups
+
+| Group | Used by |
+| --- | --- |
+| Client options | `new Copilot\Client($optionsJson)`, `CopilotConfig::$clientOptions` |
+| Transport options | `clientOptions['transport']` |
+| Telemetry options | `clientOptions['telemetry']` |
+| Session options | `createSession()`, `resumeSession()`, `CopilotConfig::$sessionConfig`, `Copilot::ask()` |
+| Message options | `send()`, `sendAndWaitJson()`, `Copilot::ask()` |
+| Set-model options | `Copilot\Session::setModel()` |
 
 ## Client Options
 
-Available through `new Copilot\Client($optionsJson)` or `CopilotConfig::$clientOptions`.
+### Description
 
-| Option | Type | Alias | Description | Example |
-| --- | --- | --- | --- | --- |
-| `programPath` | string | `program_path` | Explicit Copilot CLI path. | `['programPath' => '/usr/local/bin/copilot']` |
-| `cwd` | string | none | Working directory for the CLI server. | `['cwd' => getcwd()]` |
-| `env` | object | none | Extra child-process environment map. | `['env' => ['APP_ENV' => 'local']]` |
-| `envRemove` | string[] | `env_remove` | Environment variable names to remove. | `['envRemove' => ['GITHUB_TOKEN']]` |
-| `prefixArgs` | string[] | `prefix_args` | Arguments inserted before CLI server flags. | `['prefixArgs' => ['--verbose']]` |
-| `extraArgs` | string[] | `extra_args` | Extra CLI arguments after transport flags. | `['extraArgs' => ['--log-level', 'debug']]` |
-| `githubToken` | string | `github_token` | Token passed through the SDK auth-token flow. | `['githubToken' => getenv('GITHUB_COPILOT_TOKEN')]` |
-| `useLoggedInUser` | bool | `use_logged_in_user` | Allows existing logged-in CLI credentials. | `['useLoggedInUser' => false]` |
-| `logLevel` | string | `log_level` | `none`, `error`, `warning`, `warn`, `info`, `debug`, `all`, or `trace`. | `['logLevel' => 'info']` |
-| `sessionIdleTimeoutSeconds` | int | `session_idle_timeout_seconds` | CLI server idle timeout in seconds. | `['sessionIdleTimeoutSeconds' => 300]` |
-| `copilotHome` | string | `copilot_home` | Isolated Copilot state directory. | `['copilotHome' => __DIR__ . '/../var/copilot']` |
-| `tcpConnectionToken` | string | `tcp_connection_token` | Token for TCP/external transport. | `['tcpConnectionToken' => bin2hex(random_bytes(16))]` |
-| `remote` | bool | none | Enables remote session support. | `['remote' => true]` |
-| `transport` | object | none | Transport config; see transport options. | `['transport' => ['type' => 'stdio']]` |
-| `telemetry` | object | none | Telemetry config; see telemetry options. | `['telemetry' => ['exporterType' => 'file']]` |
+Client options control Copilot CLI process startup, authentication, transport, and telemetry.
 
-Client option example:
+### Reference
+
+| Option | Type | Alias | Description |
+| --- | --- | --- | --- |
+| `programPath` | `string` | `program_path` | Explicit Copilot CLI path. |
+| `cwd` | `string` | none | Working directory for the CLI server. |
+| `env` | `array<string,string>` | none | Extra child-process environment map. |
+| `envRemove` | `string[]` | `env_remove` | Environment variable names to remove. |
+| `prefixArgs` | `string[]` | `prefix_args` | Arguments inserted before CLI server flags. |
+| `extraArgs` | `string[]` | `extra_args` | Extra CLI arguments after transport flags. |
+| `githubToken` | `string` | `github_token` | Token passed through the SDK auth-token flow. |
+| `useLoggedInUser` | `bool` | `use_logged_in_user` | Allows existing logged-in CLI credentials. |
+| `logLevel` | `string` | `log_level` | `none`, `error`, `warning`, `warn`, `info`, `debug`, `all`, or `trace`. |
+| `sessionIdleTimeoutSeconds` | `int` | `session_idle_timeout_seconds` | CLI server idle timeout in seconds. |
+| `copilotHome` | `string` | `copilot_home` | Isolated Copilot state directory. |
+| `tcpConnectionToken` | `string` | `tcp_connection_token` | Token for TCP/external transport. |
+| `remote` | `bool` | none | Enables remote session support. |
+| `transport` | `array` | none | Transport config. See [Transport Options](#transport-options). |
+| `telemetry` | `array` | none | Telemetry config. See [Telemetry Options](#telemetry-options). |
+
+### Example
 
 ```php
 $client = new Copilot\Client(json_encode([
@@ -38,7 +59,11 @@ $client = new Copilot\Client(json_encode([
 
 ## Transport Options
 
+### Description
+
 `transport.type` controls how the extension talks to the Copilot CLI server.
+
+### Reference
 
 | Type | Options | Example |
 | --- | --- | --- |
@@ -48,17 +73,21 @@ $client = new Copilot\Client(json_encode([
 
 ## Telemetry Options
 
-Available inside the `telemetry` client option.
+### Description
 
-| Option | Type | Alias | Description | Example |
-| --- | --- | --- | --- | --- |
-| `otlpEndpoint` | string | `otlp_endpoint` | OTLP HTTP endpoint. | `['otlpEndpoint' => 'http://127.0.0.1:4318']` |
-| `filePath` | string | `file_path` | Telemetry output file. | `['filePath' => __DIR__ . '/../var/copilot-telemetry.jsonl']` |
-| `sourceName` | string | `source_name` | Telemetry source name. | `['sourceName' => 'my-php-app']` |
-| `captureContent` | bool | `capture_content` | Include prompt/response content in telemetry. | `['captureContent' => false]` |
-| `exporterType` | string | `exporter_type` | `otlp-http`, `otlpHttp`, or `file`. | `['exporterType' => 'file']` |
+Telemetry options configure SDK telemetry export. Avoid `captureContent` unless your application is allowed to persist prompt and response content.
 
-Telemetry example:
+### Reference
+
+| Option | Type | Alias | Description |
+| --- | --- | --- | --- |
+| `otlpEndpoint` | `string` | `otlp_endpoint` | OTLP HTTP endpoint. |
+| `filePath` | `string` | `file_path` | Telemetry output file. |
+| `sourceName` | `string` | `source_name` | Telemetry source name. |
+| `captureContent` | `bool` | `capture_content` | Include prompt/response content in telemetry. |
+| `exporterType` | `string` | `exporter_type` | `otlp-http`, `otlpHttp`, or `file`. |
+
+### Example
 
 ```php
 $client = new Copilot\Client(json_encode([
@@ -73,41 +102,45 @@ $client = new Copilot\Client(json_encode([
 
 ## Session Options
 
-Available through `createSession($configJson)`, `resumeSession($sessionId, $configJson)`, `CopilotConfig::$sessionConfig`, or the third argument to `Copilot::ask()`.
+### Description
 
-| Option | Type | Description | Example |
-| --- | --- | --- | --- |
-| `sessionId` | string | Resume target. Injected by `resumeSession()`. | `['sessionId' => 'session-123']` |
-| `model` | string | Model name. | `['model' => 'gpt-5']` |
-| `clientName` | string | App/client display name. | `['clientName' => 'my-php-app']` |
-| `reasoningEffort` | string | Requested reasoning effort. | `['reasoningEffort' => 'medium']` |
-| `streaming` | bool | Enables streaming events. | `['streaming' => true]` |
-| `systemMessage` | string | Session system instructions. | `['systemMessage' => 'Answer tersely.']` |
-| `availableTools` | array | Tool allow-list passed to the SDK. | `['availableTools' => ['read_file']]` |
-| `excludedTools` | array | Tool deny-list passed to the SDK. | `['excludedTools' => ['run_shell_command']]` |
-| `mcpServers` | object | MCP server configuration passed to the SDK. | `['mcpServers' => ['local' => ['command' => 'php']]]` |
-| `enableConfigDiscovery` | bool | Allows SDK config discovery. | `['enableConfigDiscovery' => false]` |
-| `requestUserInput` | mixed | SDK user-input callback/config field. | `['requestUserInput' => false]` |
-| `requestPermission` | mixed | SDK permission callback/config field. | `['requestPermission' => false]` |
-| `requestElicitation` | mixed | SDK elicitation callback/config field. | `['requestElicitation' => false]` |
-| `requestExitPlanMode` | mixed | SDK exit-plan callback/config field. | `['requestExitPlanMode' => false]` |
-| `requestAutoModeSwitch` | mixed | SDK auto-mode callback/config field. | `['requestAutoModeSwitch' => false]` |
-| `skillDirectories` | string[] | Skill directories. | `['skillDirectories' => [__DIR__ . '/skills']]` |
-| `instructionDirectories` | string[] | Instruction directories. | `['instructionDirectories' => [__DIR__ . '/instructions']]` |
-| `disabledSkills` | string[] | Skills to disable. | `['disabledSkills' => ['experimental']]` |
-| `customAgents` | array | Custom agent definitions. | `['customAgents' => [['name' => 'reviewer']]]` |
-| `defaultAgent` | string | Default agent name. | `['defaultAgent' => 'reviewer']` |
-| `agent` | string | Agent for the session. | `['agent' => 'reviewer']` |
-| `infiniteSessions` | bool | Enables infinite sessions when supported by SDK. | `['infiniteSessions' => false]` |
-| `provider` | string | Provider override. | `['provider' => 'github-copilot']` |
-| `enableSessionTelemetry` | bool | Enables session telemetry. | `['enableSessionTelemetry' => true]` |
-| `configDir` | string | Config directory. | `['configDir' => __DIR__ . '/../config/copilot']` |
-| `workingDirectory` | string | Session working directory. | `['workingDirectory' => getcwd()]` |
-| `gitHubToken` | string | Session-level GitHub token field accepted by the SDK. | `['gitHubToken' => getenv('GITHUB_COPILOT_TOKEN')]` |
-| `includeSubAgentStreamingEvents` | bool | Includes sub-agent streaming events. | `['includeSubAgentStreamingEvents' => true]` |
-| `permissionPolicy` | string | Extension helper: `deny_all`, `denyAll`, `approve_all`, or `approveAll`. Defaults to `deny_all`. | `['permissionPolicy' => 'deny_all']` |
+Session options configure a Copilot conversation session. The wrapper merges `CopilotConfig::$sessionConfig` with per-call session config.
 
-Session option example:
+### Reference
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `sessionId` | `string` | Resume target. Injected by `resumeSession()`. |
+| `model` | `string` | Model name. |
+| `clientName` | `string` | App/client display name. |
+| `reasoningEffort` | `string` | Requested reasoning effort. |
+| `streaming` | `bool` | Enables streaming events. |
+| `systemMessage` | `string` | Session system instructions. |
+| `availableTools` | `array` | Tool allow-list passed to the SDK. |
+| `excludedTools` | `array` | Tool deny-list passed to the SDK. |
+| `mcpServers` | `array` | MCP server configuration passed to the SDK. |
+| `enableConfigDiscovery` | `bool` | Allows SDK config discovery. |
+| `requestUserInput` | `mixed` | SDK user-input callback/config field. |
+| `requestPermission` | `mixed` | SDK permission callback/config field. |
+| `requestElicitation` | `mixed` | SDK elicitation callback/config field. |
+| `requestExitPlanMode` | `mixed` | SDK exit-plan callback/config field. |
+| `requestAutoModeSwitch` | `mixed` | SDK auto-mode callback/config field. |
+| `skillDirectories` | `string[]` | Skill directories. |
+| `instructionDirectories` | `string[]` | Instruction directories. |
+| `disabledSkills` | `string[]` | Skills to disable. |
+| `customAgents` | `array` | Custom agent definitions. |
+| `defaultAgent` | `string` | Default agent name. |
+| `agent` | `string` | Agent for the session. |
+| `infiniteSessions` | `bool` | Enables infinite sessions when supported by SDK. |
+| `provider` | `string` | Provider override. |
+| `enableSessionTelemetry` | `bool` | Enables session telemetry. |
+| `configDir` | `string` | Config directory. |
+| `workingDirectory` | `string` | Session working directory. |
+| `gitHubToken` | `string` | Session-level GitHub token field accepted by the SDK. |
+| `includeSubAgentStreamingEvents` | `bool` | Includes sub-agent streaming events. |
+| `permissionPolicy` | `string` | Extension helper: `deny_all`, `denyAll`, `approve_all`, or `approveAll`. Defaults to `deny_all`. |
+
+### Example
 
 ```php
 $session = $client->createSession(json_encode([
@@ -120,19 +153,23 @@ $session = $client->createSession(json_encode([
 
 ## Message Options
 
-Available through `send($prompt, $optionsJson)`, `sendAndWaitJson($prompt, $optionsJson)`, or the second argument to `Copilot::ask()`.
+### Description
 
-| Option | Type | Alias | Description | Example |
-| --- | --- | --- | --- | --- |
-| `mode` | string | none | Delivery mode, commonly `enqueue` or `immediate`. | `['mode' => 'immediate']` |
-| `timeoutSeconds` | int | `timeout_seconds` | Wait timeout in seconds for `sendAndWaitJson()` or `ask()`. | `['timeoutSeconds' => 90]` |
-| `timeoutMs` | int | `timeout_ms` | Wait timeout in milliseconds. | `['timeoutMs' => 5000]` |
-| `attachments` | array | none | SDK attachment JSON array. | `['attachments' => [['type' => 'text', 'content' => 'Context']]]` |
-| `requestHeaders` | object | `request_headers` | Request header map. | `['requestHeaders' => ['x-trace-id' => 'abc123']]` |
-| `traceparent` | string | none | W3C traceparent value. | `['traceparent' => '00-00000000000000000000000000000000-0000000000000000-01']` |
-| `tracestate` | string | none | W3C tracestate value. | `['tracestate' => 'vendor=value']` |
+Message options configure prompt delivery and wait behavior.
 
-Message option example:
+### Reference
+
+| Option | Type | Alias | Description |
+| --- | --- | --- | --- |
+| `mode` | `string` | none | Delivery mode, commonly `enqueue` or `immediate`. |
+| `timeoutSeconds` | `int` | `timeout_seconds` | Wait timeout in seconds for `sendAndWaitJson()` or `ask()`. |
+| `timeoutMs` | `int` | `timeout_ms` | Wait timeout in milliseconds. |
+| `attachments` | `array` | none | SDK attachment JSON array. |
+| `requestHeaders` | `array<string,string>` | `request_headers` | Request header map. |
+| `traceparent` | `string` | none | W3C traceparent value. |
+| `tracestate` | `string` | none | W3C tracestate value. |
+
+### Example
 
 ```php
 $event = json_decode($session->sendAndWaitJson('Summarize this class.', json_encode([
@@ -142,18 +179,28 @@ $event = json_decode($session->sendAndWaitJson('Summarize this class.', json_enc
 ], JSON_THROW_ON_ERROR)), true, 512, JSON_THROW_ON_ERROR);
 ```
 
-## Set Model Options
+## Set-Model Options
 
-Available through `$session->setModel($model, $optionsJson)`.
+### Description
 
-| Option | Type | Alias | Description | Example |
-| --- | --- | --- | --- | --- |
-| `reasoningEffort` | string | `reasoning_effort` | Requested reasoning effort for the new model. | `['reasoningEffort' => 'medium']` |
+Set-model options configure a session model change.
 
-Set model option example:
+### Reference
+
+| Option | Type | Alias | Description |
+| --- | --- | --- | --- |
+| `reasoningEffort` | `string` | `reasoning_effort` | Requested reasoning effort for the new model. |
+
+### Example
 
 ```php
 $session->setModel('gpt-5', json_encode([
     'reasoningEffort' => 'high',
 ], JSON_THROW_ON_ERROR));
 ```
+
+## See Also
+
+- [COPILOT-WRAPPER.md](COPILOT-WRAPPER.md)
+- [COPILOT-NATIVE.md](COPILOT-NATIVE.md)
+- [COPILOT-EXAMPLES.md](COPILOT-EXAMPLES.md)

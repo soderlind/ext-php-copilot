@@ -1,10 +1,39 @@
-# Copilot Wrapper API
+<!-- markdownlint-disable MD013 MD024 -->
 
-Use `ExtPhpCopilot\Copilot` for normal PHP applications. It keeps credentials, JSON encoding, session cleanup, and safer defaults in PHP while the native extension stays generic.
+# Wrapper API Reference
 
-Complex native inputs and outputs use JSON strings. The wrapper converts PHP arrays to JSON and decodes JSON responses for common app usage.
+## Summary
 
-## Recommended App Integration
+The wrapper API provides a PHP-native facade over the `Copilot\Client` and `Copilot\Session` extension classes. It handles JSON conversion, configuration validation, authentication checks, session reuse, and cleanup.
+
+Use this API for normal application code.
+
+## Namespace
+
+```php
+ExtPhpCopilot
+```
+
+## Classes
+
+| Class | Description |
+| --- | --- |
+| `ExtPhpCopilot\CopilotConfig` | Immutable configuration object for the wrapper. |
+| `ExtPhpCopilot\Copilot` | High-level client wrapper for authentication, sessions, and prompt execution. |
+
+## Authentication Model
+
+The extension starts the GitHub Copilot CLI through the Rust SDK. The CLI authenticates with GitHub. This package does not perform OAuth and does not grant Copilot access.
+
+| Mode | Use case | Notes |
+| --- | --- | --- |
+| Server token | Internal tools, admin screens, workers | Store `GITHUB_COPILOT_TOKEN` outside source control. |
+| Per-user token | Apps that already manage user tokens | The package accepts the token but does not implement OAuth storage. |
+| CLI user | Local development | Requires existing CLI login state; not recommended for PHP-FPM or Apache workers. |
+
+For web apps, keep `useLoggedInUser` disabled, set an app-owned `copilotHome`, and avoid logging `githubToken`.
+
+## Recommended Usage
 
 ```php
 <?php
@@ -29,47 +58,65 @@ try {
 }
 ```
 
-By default, the wrapper reads `GITHUB_COPILOT_TOKEN`, disables logged-in CLI fallback, isolates CLI state with `copilotHome`, and uses `permissionPolicy: deny_all`.
+## `ExtPhpCopilot\CopilotConfig`
 
-## Authentication
+### Description
 
-The extension does not perform OAuth and does not grant Copilot access. It starts the GitHub Copilot CLI through the Rust SDK, and the CLI authenticates with GitHub.
+Immutable configuration for `ExtPhpCopilot\Copilot`.
 
-Recommended web-app flow:
+### Properties
 
-1. Store a Copilot-entitled GitHub token in an environment variable or secret manager.
-2. Pass it as `githubToken` or use `ExtPhpCopilot\Copilot::fromEnvironment()`.
-3. Set `useLoggedInUser` to `false` for webservers.
-4. Set a writable, app-owned `copilotHome` outside the web root.
-5. Call `authStatusJson()` or `assertAuthenticated()` during application startup or health checks.
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `githubToken` | `?string` | `null` | GitHub token with Copilot access. Required unless `useLoggedInUser` is explicitly enabled. |
+| `copilotHome` | `?string` | temporary directory | Writable Copilot CLI state directory. |
+| `cwd` | `?string` | current process directory | Working directory for the Copilot client. |
+| `useLoggedInUser` | `bool` | `false` | Enables fallback to logged-in CLI state. |
+| `permissionPolicy` | `string` | `deny_all` | Default session permission policy. |
+| `model` | `?string` | `null` | Optional default model name. |
+| `timeoutSeconds` | `int` | `60` | Default wait timeout for `ask()`. |
+| `clientOptions` | `array` | `[]` | Extra native client options. |
+| `sessionConfig` | `array` | `[]` | Extra native session configuration. |
 
-Supported auth modes:
+### `__construct()`
 
-- Server token: one app-level token, best for internal/admin tools.
-- Per-user token: the application stores and supplies each user's token; this package accepts the token but does not implement OAuth storage.
-- CLI user: pre-authenticated Copilot CLI state; useful for local development, not recommended for production PHP-FPM or Apache workers.
-
-Never expose `githubToken` in logs, browser responses, WordPress options, or application error pages.
-
-## ExtPhpCopilot\CopilotConfig
-
-`CopilotConfig` is an immutable configuration object for the wrapper.
-
-Constructor properties:
-
-- `githubToken`: GitHub token with Copilot access, or `null` when `useLoggedInUser` is explicitly enabled.
-- `copilotHome`: writable directory for Copilot CLI state.
-- `cwd`: working directory for the Copilot client.
-- `useLoggedInUser`: enables logged-in CLI fallback. Defaults to `false`.
-- `permissionPolicy`: default session permission policy. Defaults to `deny_all`.
-- `model`: optional default model name.
-- `timeoutSeconds`: default wait timeout for `ask()`. Defaults to `60`.
-- `clientOptions`: extra native client options passed through to `Copilot\Client`.
-- `sessionConfig`: extra native session config passed through to `createSession()`.
-
-### `new CopilotConfig(...)`
+```php
+public function __construct(
+    ?string $githubToken = null,
+    ?string $copilotHome = null,
+    ?string $cwd = null,
+    bool $useLoggedInUser = false,
+    string $permissionPolicy = 'deny_all',
+    ?string $model = null,
+    int $timeoutSeconds = 60,
+    array $clientOptions = [],
+    array $sessionConfig = []
+)
+```
 
 Creates an explicit wrapper configuration.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$githubToken` | `?string` | GitHub token with Copilot access. |
+| `$copilotHome` | `?string` | Copilot CLI state directory. |
+| `$cwd` | `?string` | Working directory. |
+| `$useLoggedInUser` | `bool` | Enables logged-in CLI fallback. |
+| `$permissionPolicy` | `string` | Session permission policy. |
+| `$model` | `?string` | Optional default model. |
+| `$timeoutSeconds` | `int` | Default prompt wait timeout. |
+| `$clientOptions` | `array` | Extra native client options. |
+| `$sessionConfig` | `array` | Extra session config. |
+
+#### Throws
+
+| Exception | Condition |
+| --- | --- |
+| `ExtPhpCopilot\Exception\ConfigurationException` | Configuration is invalid or token/CLI-user auth is missing. |
+
+#### Example
 
 ```php
 use ExtPhpCopilot\CopilotConfig;
@@ -85,9 +132,25 @@ $config = new CopilotConfig(
 );
 ```
 
-### `CopilotConfig::fromArray(array $config): CopilotConfig`
+### `fromArray()`
 
-Creates a config from an app array. `token` aliases `githubToken`, and `home` aliases `copilotHome`.
+```php
+public static function fromArray(array $config): CopilotConfig
+```
+
+Creates configuration from an application array. `token` aliases `githubToken`; `home` aliases `copilotHome`.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$config` | `array` | Configuration map. |
+
+#### Return Value
+
+Returns a validated `CopilotConfig` instance.
+
+#### Example
 
 ```php
 $config = CopilotConfig::fromArray([
@@ -99,9 +162,26 @@ $config = CopilotConfig::fromArray([
 ]);
 ```
 
-### `CopilotConfig::fromEnvironment(?string $cwd = null, ?string $copilotHome = null): CopilotConfig`
+### `fromEnvironment()`
 
-Reads `GITHUB_COPILOT_TOKEN`, disables logged-in user fallback, and uses a supplied or temp `copilotHome`.
+```php
+public static function fromEnvironment(?string $cwd = null, ?string $copilotHome = null): CopilotConfig
+```
+
+Reads `GITHUB_COPILOT_TOKEN`, disables logged-in CLI fallback, and creates a token-based config.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$cwd` | `?string` | Working directory. |
+| `$copilotHome` | `?string` | Copilot CLI state directory. |
+
+#### Return Value
+
+Returns a validated `CopilotConfig` instance.
+
+#### Example
 
 ```php
 $config = CopilotConfig::fromEnvironment(
@@ -110,9 +190,26 @@ $config = CopilotConfig::fromEnvironment(
 );
 ```
 
-### `CopilotConfig::forCliUser(?string $cwd = null, ?string $copilotHome = null): CopilotConfig`
+### `forCliUser()`
 
-Creates a config for a locally logged-in Copilot CLI user.
+```php
+public static function forCliUser(?string $cwd = null, ?string $copilotHome = null): CopilotConfig
+```
+
+Creates configuration for a locally logged-in Copilot CLI user.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$cwd` | `?string` | Working directory. |
+| `$copilotHome` | `?string` | Existing or isolated CLI home directory. |
+
+#### Return Value
+
+Returns a validated `CopilotConfig` instance.
+
+#### Example
 
 ```php
 $config = CopilotConfig::forCliUser(
@@ -121,13 +218,34 @@ $config = CopilotConfig::forCliUser(
 );
 ```
 
-## ExtPhpCopilot\Copilot
+## `ExtPhpCopilot\Copilot`
 
-`Copilot` is the recommended high-level app wrapper.
+### Description
 
-### `new Copilot(CopilotConfig $config)`
+Application wrapper around the native Copilot client and a reusable session.
 
-Starts the native Copilot client with the supplied config.
+### `__construct()`
+
+```php
+public function __construct(CopilotConfig $config)
+```
+
+Starts the native Copilot client.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$config` | `CopilotConfig` | Wrapper configuration. |
+
+#### Throws
+
+| Exception | Condition |
+| --- | --- |
+| `ExtPhpCopilot\Exception\ConfigurationException` | Native extension is not loaded. |
+| `ExtPhpCopilot\Exception\CopilotException` | Native client startup fails. |
+
+#### Example
 
 ```php
 use ExtPhpCopilot\Copilot;
@@ -136,9 +254,25 @@ use ExtPhpCopilot\CopilotConfig;
 $copilot = new Copilot(CopilotConfig::fromEnvironment(getcwd(), __DIR__ . '/../var/copilot'));
 ```
 
-### `Copilot::fromConfig(array|CopilotConfig $config): Copilot`
+### `fromConfig()`
 
-Creates a wrapper from either a `CopilotConfig` instance or array config.
+```php
+public static function fromConfig(array|CopilotConfig $config): Copilot
+```
+
+Creates a wrapper from a `CopilotConfig` instance or array config.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$config` | `array` or `CopilotConfig` | Wrapper configuration. |
+
+#### Return Value
+
+Returns a started `Copilot` wrapper.
+
+#### Example
 
 ```php
 $copilot = Copilot::fromConfig([
@@ -148,9 +282,26 @@ $copilot = Copilot::fromConfig([
 ]);
 ```
 
-### `Copilot::fromEnvironment(?string $cwd = null, ?string $copilotHome = null): Copilot`
+### `fromEnvironment()`
 
-Creates a wrapper from `GITHUB_COPILOT_TOKEN`.
+```php
+public static function fromEnvironment(?string $cwd = null, ?string $copilotHome = null): Copilot
+```
+
+Creates a token-authenticated wrapper from `GITHUB_COPILOT_TOKEN`.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$cwd` | `?string` | Working directory. |
+| `$copilotHome` | `?string` | Copilot CLI state directory. |
+
+#### Return Value
+
+Returns a started `Copilot` wrapper.
+
+#### Example
 
 ```php
 $copilot = Copilot::fromEnvironment(
@@ -159,17 +310,37 @@ $copilot = Copilot::fromEnvironment(
 );
 ```
 
-### `Copilot::forCliUser(?string $cwd = null, ?string $copilotHome = null): Copilot`
+### `forCliUser()`
+
+```php
+public static function forCliUser(?string $cwd = null, ?string $copilotHome = null): Copilot
+```
 
 Creates a wrapper that uses existing logged-in CLI state.
+
+#### Return Value
+
+Returns a started `Copilot` wrapper.
+
+#### Example
 
 ```php
 $copilot = Copilot::forCliUser(cwd: getcwd());
 ```
 
-### `$copilot->authStatus(): array`
+### `authStatus()`
 
-Returns decoded authentication status.
+```php
+public function authStatus(): array
+```
+
+Returns decoded authentication status from the native client.
+
+#### Return Value
+
+Returns an associative array from the Copilot SDK auth status response.
+
+#### Example
 
 ```php
 $status = $copilot->authStatus();
@@ -178,17 +349,45 @@ if (($status['isAuthenticated'] ?? false) !== true) {
 }
 ```
 
-### `$copilot->assertAuthenticated(): void`
+### `assertAuthenticated()`
 
-Throws `ExtPhpCopilot\Exception\AuthenticationException` when Copilot auth is unavailable.
+```php
+public function assertAuthenticated(): void
+```
+
+Verifies that Copilot authentication is available.
+
+#### Throws
+
+| Exception | Condition |
+| --- | --- |
+| `ExtPhpCopilot\Exception\AuthenticationException` | Copilot is not authenticated. |
+
+#### Example
 
 ```php
 $copilot->assertAuthenticated();
 ```
 
-### `$copilot->createSession(array $sessionConfig = []): Copilot\Session`
+### `createSession()`
 
-Creates and stores a native session. A previous stored session is disconnected first.
+```php
+public function createSession(array $sessionConfig = []): Copilot\Session
+```
+
+Creates and stores a native session. A previously stored session is disconnected first.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$sessionConfig` | `array` | Session config merged with defaults from `CopilotConfig`. |
+
+#### Return Value
+
+Returns the native `Copilot\Session` instance.
+
+#### Example
 
 ```php
 $session = $copilot->createSession([
@@ -198,9 +397,27 @@ $session = $copilot->createSession([
 ]);
 ```
 
-### `$copilot->ask(string $prompt, array $messageOptions = [], array $sessionConfig = []): ?array`
+### `ask()`
+
+```php
+public function ask(string $prompt, array $messageOptions = [], array $sessionConfig = []): ?array
+```
 
 Creates a session when needed, sends a prompt, waits for one response event, and returns the decoded event.
+
+#### Parameters
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `$prompt` | `string` | User prompt to send. |
+| `$messageOptions` | `array` | Message options, such as `timeoutSeconds`. |
+| `$sessionConfig` | `array` | Optional session config for a new session. |
+
+#### Return Value
+
+Returns a decoded event array or `null` if no event arrives before timeout.
+
+#### Example
 
 ```php
 $event = $copilot->ask(
@@ -210,17 +427,37 @@ $event = $copilot->ask(
 );
 ```
 
-### `$copilot->client(): Copilot\Client`
+### `client()`
+
+```php
+public function client(): Copilot\Client
+```
 
 Returns the native client for lower-level calls.
+
+#### Return Value
+
+Returns `Copilot\Client`.
+
+#### Example
 
 ```php
 $models = json_decode($copilot->client()->modelsJson(), true, 512, JSON_THROW_ON_ERROR);
 ```
 
-### `$copilot->session(): ?Copilot\Session`
+### `session()`
+
+```php
+public function session(): ?Copilot\Session
+```
 
 Returns the stored native session, if one has been created.
+
+#### Return Value
+
+Returns `Copilot\Session` or `null`.
+
+#### Example
 
 ```php
 $session = $copilot->session();
@@ -229,9 +466,15 @@ if ($session !== null) {
 }
 ```
 
-### `$copilot->close(): void`
+### `close()`
+
+```php
+public function close(): void
+```
 
 Disconnects the stored session and stops the native client.
+
+#### Example
 
 ```php
 try {
@@ -240,3 +483,9 @@ try {
     $copilot->close();
 }
 ```
+
+## See Also
+
+- [COPILOT-NATIVE.md](COPILOT-NATIVE.md)
+- [COPILOT-OPTIONS.md](COPILOT-OPTIONS.md)
+- [COPILOT-EXAMPLES.md](COPILOT-EXAMPLES.md)

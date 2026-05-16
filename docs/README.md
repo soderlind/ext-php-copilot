@@ -1,23 +1,38 @@
+<!-- markdownlint-disable MD013 MD024 -->
+
 # Copilot PHP API
 
-This is the entry point for the ext-php-copilot documentation. The extension exposes a low-level native PHP API and a Composer-friendly PHP wrapper.
+## Summary
 
-Use the wrapper for normal PHP applications. Use the native API when you need direct JSON-RPC access or want to work with the Rust SDK surface more closely.
+`ext-php-copilot` exposes GitHub Copilot to PHP 8.3 applications through two API layers:
 
-## Documentation Map
+- `ExtPhpCopilot\Copilot`: a Composer-friendly wrapper for application code.
+- `Copilot\Client` and `Copilot\Session`: native extension classes for direct JSON-RPC access.
 
-- [COPILOT-WRAPPER.md](COPILOT-WRAPPER.md): recommended PHP app integration, authentication model, `ExtPhpCopilot\CopilotConfig`, and `ExtPhpCopilot\Copilot`.
-- [COPILOT-NATIVE.md](COPILOT-NATIVE.md): native `copilot_sdk_version()`, `Copilot\Client`, and `Copilot\Session` methods.
-- [COPILOT-OPTIONS.md](COPILOT-OPTIONS.md): client, transport, telemetry, session, message, and set-model options.
-- [COPILOT-EXAMPLES.md](COPILOT-EXAMPLES.md): bundled scripts, wrapper flow, native flow, model listing, streaming, and live acceptance testing.
+Prefer the wrapper for applications, plugins, workers, and CLI commands. Use the native API when you need direct control over JSON payloads, streaming event polling, or SDK-specific options.
 
-## Which API Should I Use?
+## Package Layout
 
-Use `ExtPhpCopilot\Copilot` when building an app, plugin, CLI command, worker, or framework integration. It handles JSON conversion, safer auth defaults, session cleanup, and a one-call `ask()` workflow.
+| Document | Description |
+| --- | --- |
+| [COPILOT-WRAPPER.md](COPILOT-WRAPPER.md) | Wrapper API reference for `ExtPhpCopilot\CopilotConfig` and `ExtPhpCopilot\Copilot`. |
+| [COPILOT-NATIVE.md](COPILOT-NATIVE.md) | Native extension reference for `copilot_sdk_version()`, `Copilot\Client`, and `Copilot\Session`. |
+| [COPILOT-OPTIONS.md](COPILOT-OPTIONS.md) | JSON option reference for clients, transports, telemetry, sessions, messages, and model changes. |
+| [COPILOT-EXAMPLES.md](COPILOT-EXAMPLES.md) | Runnable examples, acceptance test flow, and common usage recipes. |
 
-Use `Copilot\Client` and `Copilot\Session` directly when you need low-level control, streaming event polling, custom JSON-RPC calls, or exact SDK option shapes.
+## API Selection
 
-## Minimal Wrapper Example
+| Use case | Recommended API |
+| --- | --- |
+| Generic PHP app integration | `ExtPhpCopilot\Copilot` |
+| Token-based web application auth | `ExtPhpCopilot\Copilot::fromEnvironment()` |
+| Local CLI development with existing login state | `ExtPhpCopilot\Copilot::forCliUser()` |
+| Model listing, raw status, or SDK method calls | `Copilot\Client` |
+| Streaming events or manual session control | `Copilot\Session` |
+
+## Synopsis
+
+### Wrapper API
 
 ```php
 use ExtPhpCopilot\Copilot;
@@ -35,7 +50,7 @@ try {
 }
 ```
 
-## Minimal Native Example
+### Native API
 
 ```php
 $client = new Copilot\Client(json_encode([
@@ -54,13 +69,20 @@ $session->disconnect();
 $client->stop();
 ```
 
-## Authentication Summary
+## Authentication
 
-For web apps, prefer explicit token auth:
+For server-side PHP applications, use explicit token auth and isolated Copilot CLI state.
 
-- Store `GITHUB_COPILOT_TOKEN` in an environment variable or secret manager.
-- Keep `useLoggedInUser` disabled for webservers.
-- Set an app-owned `copilotHome` outside the web root.
-- Use `permissionPolicy: deny_all` unless the app intentionally allows tool permissions.
+| Requirement | Recommendation |
+| --- | --- |
+| Token storage | Store `GITHUB_COPILOT_TOKEN` in the environment or a secret manager. |
+| CLI user fallback | Keep `useLoggedInUser` disabled for web servers. |
+| CLI state | Set an app-owned `copilotHome` outside the web root. |
+| Tool permissions | Use `permissionPolicy` set to `deny_all` unless the app intentionally grants tools. |
 
-See [COPILOT-WRAPPER.md](COPILOT-WRAPPER.md) for the full authentication guidance.
+## See Also
+
+- [COPILOT-WRAPPER.md](COPILOT-WRAPPER.md)
+- [COPILOT-NATIVE.md](COPILOT-NATIVE.md)
+- [COPILOT-OPTIONS.md](COPILOT-OPTIONS.md)
+- [COPILOT-EXAMPLES.md](COPILOT-EXAMPLES.md)

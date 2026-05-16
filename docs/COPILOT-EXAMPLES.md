@@ -1,6 +1,31 @@
-# Copilot Examples
+<!-- markdownlint-disable MD013 MD024 -->
 
-Run examples with the debug extension loaded. On macOS, the extension file is `target/debug/libext_php_copilot.dylib`; on Linux it is usually `target/debug/libext_php_copilot.so`; on Windows it is a `.dll`.
+# Examples Reference
+
+## Summary
+
+This page documents the bundled scripts and common usage recipes. Run examples with the debug extension loaded.
+
+## Requirements
+
+| Requirement | Description |
+| --- | --- |
+| Extension build | Run `cargo build` before executing examples. |
+| Extension path | macOS uses `target/debug/libext_php_copilot.dylib`; Linux uses `target/debug/libext_php_copilot.so`; Windows uses a `.dll`. |
+| Authentication | Set `GITHUB_COPILOT_TOKEN` or use explicit CLI-user configuration for local development. |
+
+## Bundled Scripts
+
+| Script | Purpose |
+| --- | --- |
+| `examples/basic.php` | Direct native client/session flow. |
+| `examples/models.php` | Model listing. |
+| `examples/streaming.php` | Streaming event polling. |
+| `examples/generic_app.php` | Recommended wrapper flow for generic PHP apps. |
+
+## Running Examples
+
+### Synopsis
 
 ```sh
 cargo build
@@ -10,14 +35,17 @@ php -d extension=target/debug/libext_php_copilot.dylib examples/streaming.php
 php -d extension=target/debug/libext_php_copilot.dylib examples/generic_app.php
 ```
 
-## Bundled Scripts
+### Notes
 
-- `examples/basic.php`: direct native client/session flow.
-- `examples/models.php`: model listing.
-- `examples/streaming.php`: streaming event polling.
-- `examples/generic_app.php`: recommended wrapper flow for generic PHP apps.
+Replace the extension path with the Linux `.so` or Windows `.dll` path when running on another platform.
 
-## Generic Wrapper Flow
+## Recipe: Generic Wrapper Flow
+
+### Description
+
+Use `ExtPhpCopilot\Copilot` when integrating Copilot into an application. This flow keeps auth, JSON handling, session lifecycle, and cleanup in one wrapper.
+
+### Example
 
 ```php
 <?php
@@ -42,7 +70,13 @@ try {
 }
 ```
 
-## Direct Native Flow
+## Recipe: Direct Native Flow
+
+### Description
+
+Use `Copilot\Client` and `Copilot\Session` directly when you need raw JSON options or streaming/session control.
+
+### Example
 
 ```php
 use Copilot\Client;
@@ -71,7 +105,13 @@ $session->disconnect();
 $client->stop();
 ```
 
-## Model Listing
+## Recipe: Model Listing
+
+### Description
+
+Call `Copilot\Client::modelsJson()` to inspect available model metadata.
+
+### Example
 
 ```php
 $client = new Copilot\Client(json_encode([
@@ -86,7 +126,13 @@ print_r($models);
 $client->stop();
 ```
 
-## Streaming
+## Recipe: Streaming Events
+
+### Description
+
+Create a streaming session, send a prompt with immediate delivery, and poll for events.
+
+### Example
 
 ```php
 $session = $client->createSession(json_encode([
@@ -104,19 +150,27 @@ while (($eventJson = $session->nextEventJson(1000)) !== null) {
 }
 ```
 
-## Live Acceptance Test
+## Recipe: Live Acceptance Test
 
-Create a local `.env` file with a Copilot-enabled token. The file is ignored by Git.
+### Description
+
+The acceptance test loads `.env`, verifies authentication, sends one prompt, and stores local Copilot CLI state under `var/copilot-acceptance`.
+
+### Environment
 
 ```dotenv
 GITHUB_COPILOT_TOKEN=your_token_here
 ```
 
-Then run:
+### Command
 
 ```sh
 cargo build
 php -d extension=target/debug/libext_php_copilot.dylib tests/acceptance.php
 ```
 
-The acceptance test loads `.env`, verifies authentication, sends one prompt, and stores local Copilot CLI state under `var/copilot-acceptance`.
+## See Also
+
+- [COPILOT-WRAPPER.md](COPILOT-WRAPPER.md)
+- [COPILOT-NATIVE.md](COPILOT-NATIVE.md)
+- [COPILOT-OPTIONS.md](COPILOT-OPTIONS.md)
