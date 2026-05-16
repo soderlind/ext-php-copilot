@@ -64,6 +64,12 @@ Version tags build downloadable release archives for Linux, macOS, and Windows. 
 - `no-cli`: requires `COPILOT_CLI_PATH` or a GitHub Copilot CLI available on `PATH`.
 - `embedded-cli`: embeds the GitHub Copilot CLI selected by `COPILOT_CLI_VERSION` in the release workflow.
 
+Available releases are published on GitHub:
+
+- [v0.1.3](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.3) latest, embeds GitHub Copilot CLI `1.0.48` in the `embedded-cli` archives.
+- [v0.1.2](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.2) adds downloadable release archives for each OS and variant.
+- [v0.1.1](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.1) includes the initial CI portability fixes.
+
 ## AI Contribution Attribution
 
 Assisted-by: GitHub Copilot
