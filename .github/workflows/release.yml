@@ -92,13 +92,20 @@ jobs:
           $packageDir = Join-Path 'dist' $assetName
           New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
 
-          Copy-Item '${{ matrix.library }}' $packageDir
-          Copy-Item 'README.md' $packageDir
-          Copy-Item 'CHANGELOG.md' $packageDir
-          Copy-Item 'composer.json' $packageDir
-          Copy-Item 'php' (Join-Path $packageDir 'php') -Recurse
-          Copy-Item 'stubs' (Join-Path $packageDir 'stubs') -Recurse
-          Copy-Item 'docs' (Join-Path $packageDir 'docs') -Recurse
+          function Copy-ReleaseItem($Source, $Destination = $packageDir) {
+            if (Test-Path $Source) {
+              Copy-Item $Source $Destination -Recurse
+            }
+          }
+
+          Copy-ReleaseItem '${{ matrix.library }}'
+          Copy-ReleaseItem 'README.md'
+          Copy-ReleaseItem 'CHANGELOG.md'
+          Copy-ReleaseItem 'composer.json'
+          Copy-ReleaseItem 'php' (Join-Path $packageDir 'php')
+          Copy-ReleaseItem 'stubs' (Join-Path $packageDir 'stubs')
+          Copy-ReleaseItem 'docs' (Join-Path $packageDir 'docs')
+          Copy-ReleaseItem 'examples' (Join-Path $packageDir 'examples')
 
           @(
             'ext-php-copilot release asset',
