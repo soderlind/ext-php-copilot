@@ -19,7 +19,7 @@ cargo build
 Build with an embedded CLI:
 
 ```sh
-COPILOT_CLI_VERSION=1.0.15 cargo build --release
+COPILOT_CLI_VERSION=1.0.48 cargo build --release
 ```
 
 Run a PHP script with the debug extension on macOS:

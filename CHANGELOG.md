@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2026-05-16
+
+### Changed
+
+- Updated release builds to embed GitHub Copilot CLI `1.0.48` by default.
+
 ## [0.1.2] - 2026-05-16
 
 ### Added
