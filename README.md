@@ -1,8 +1,10 @@
+<!-- markdownlint-disable MD013 -->
+
 # ext-php-copilot
 
-`ext-php-copilot` is a PHP 8.3+ extension, written in Rust with `ext-php-rs`, for driving GitHub Copilot through the Rust `github-copilot-sdk`.
+`ext-php-copilot` is a PHP 8.3+ extension, written in Rust with `ext-php-rs`, for driving GitHub Copilot through `github-copilot-sdk` 1.0.1.
 
-The extension embeds the GitHub Copilot CLI when built with `COPILOT_CLI_VERSION`, while still supporting `COPILOT_CLI_PATH` and PATH resolution for local development.
+The extension uses the SDK's `bundled-cli` feature to bundle the GitHub Copilot CLI when built with `COPILOT_CLI_VERSION`, while still supporting `COPILOT_CLI_PATH` and PATH resolution for local development.
 
 ## Requirements
 
@@ -16,7 +18,7 @@ The extension embeds the GitHub Copilot CLI when built with `COPILOT_CLI_VERSION
 cargo build
 ```
 
-Build with an embedded CLI:
+Build with a bundled Copilot CLI:
 
 ```sh
 COPILOT_CLI_VERSION=1.0.48 cargo build --release
@@ -53,7 +55,7 @@ See [docs/README.md](docs/README.md) for PHP wrapper usage, native extension met
 
 ## Platform Support
 
-The Copilot SDK supports embedded CLI targets for macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. PHP extensions are ABI-specific, so release artifacts must be built per OS, architecture, PHP 8.3 patch version, ZTS/NTS mode, and debug/non-debug mode.
+The Copilot SDK supports bundled CLI targets for macOS arm64/x64, Linux arm64/x64, and Windows arm64/x64. PHP extensions are ABI-specific, so release artifacts must be built per OS, architecture, PHP 8.3 patch version, ZTS/NTS mode, and debug/non-debug mode.
 
 `cargo-php` is useful for install/stub workflows on macOS and Linux. Windows support should build through Cargo directly with PHP 8.3 development headers and `rust-lld`.
 
@@ -62,11 +64,12 @@ The Copilot SDK supports embedded CLI targets for macOS arm64/x64, Linux arm64/x
 Version tags build downloadable release archives for Linux, macOS, and Windows. Each OS gets two variants:
 
 - `no-cli`: requires `COPILOT_CLI_PATH` or a GitHub Copilot CLI available on `PATH`.
-- `embedded-cli`: embeds the GitHub Copilot CLI selected by `COPILOT_CLI_VERSION` in the release workflow.
+- `embedded-cli`: uses the SDK `bundled-cli` feature to bundle the GitHub Copilot CLI selected by `COPILOT_CLI_VERSION` in the release workflow.
 
 Available releases are published on GitHub:
 
-- [v0.1.3](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.3) latest, embeds GitHub Copilot CLI `1.0.48` in the `embedded-cli` archives.
+- [v0.1.4](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.4) latest, updates to `github-copilot-sdk` 1.0.1 and the SDK `bundled-cli` feature.
+- [v0.1.3](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.3) embeds GitHub Copilot CLI `1.0.48` in the `embedded-cli` archives.
 - [v0.1.2](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.2) adds downloadable release archives for each OS and variant.
 - [v0.1.1](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.1) includes the initial CI portability fixes.
 
