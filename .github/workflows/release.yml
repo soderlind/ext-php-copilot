@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Version tag to publish, for example v0.1.5'
+        description: 'Version tag to publish, for example v0.1.6'
         required: true
         type: string
       copilot_cli_version:

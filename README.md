@@ -83,7 +83,8 @@ The release workflow currently defaults `COPILOT_CLI_VERSION` to GitHub Copilot 
 
 Available releases are published on GitHub:
 
-- [v0.1.5](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.5) latest, embeds GitHub Copilot CLI `1.0.62` by default in release builds.
+- [v0.1.6](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.6) latest, resolves Dependabot alerts for locked Rust dependencies.
+- [v0.1.5](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.5) embeds GitHub Copilot CLI `1.0.62` by default in release builds.
 - [v0.1.4](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.4) updates to `github-copilot-sdk` 1.0.1 and the SDK `bundled-cli` feature.
 - [v0.1.3](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.3) embeds GitHub Copilot CLI `1.0.48` in the `embedded-cli` archives.
 - [v0.1.2](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.2) adds downloadable release archives for each OS and variant.
