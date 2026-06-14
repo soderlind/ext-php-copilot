@@ -5,7 +5,8 @@ use std::time::Duration;
 
 use ext_php_rs::exception::{PhpException, PhpResult};
 use github_copilot_sdk::types::{
-    Attachment, DeliveryMode, MessageOptions, ResumeSessionConfig, SessionConfig, SetModelOptions,
+    Attachment, CustomAgentConfig, DefaultAgentConfig, DeliveryMode, InfiniteSessionConfig,
+    MessageOptions, ProviderConfig, ResumeSessionConfig, SessionConfig, SessionId, SetModelOptions,
 };
 use github_copilot_sdk::{
     CliProgram, ClientOptions, LogLevel, OtelExporterType, TelemetryConfig, Transport,
@@ -81,15 +82,10 @@ pub fn client_options_from_json(input: Option<String>) -> PhpResult<ClientOption
     if let Some(home) =
         string_at(&value, "copilotHome").or_else(|| string_at(&value, "copilot_home"))
     {
-        options = options.with_copilot_home(PathBuf::from(home));
-    }
-    if let Some(token) = string_at(&value, "tcpConnectionToken")
-        .or_else(|| string_at(&value, "tcp_connection_token"))
-    {
-        options = options.with_tcp_connection_token(token);
+        options = options.with_base_directory(PathBuf::from(home));
     }
     if let Some(remote) = bool_at(&value, "remote") {
-        options = options.with_remote(remote);
+        options = options.with_enable_remote_sessions(remote);
     }
     if let Some(transport) = value.get("transport") {
         options = options.with_transport(parse_transport(transport)?);
@@ -107,7 +103,7 @@ pub fn session_config_from_json(input: Option<String>) -> PhpResult<SessionConfi
     let value = parse_json_option(input)?;
     let permission_policy =
         string_at(&value, "permissionPolicy").or_else(|| string_at(&value, "permission_policy"));
-    let mut config: SessionConfig = serde_json::from_value(value).map_err(to_php_error)?;
+    let mut config = session_config_from_value(&value)?;
 
     config = match permission_policy.as_deref() {
         Some("approve_all") | Some("approveAll") => config.approve_all_permissions(),
@@ -126,14 +122,11 @@ pub fn resume_config_from_json(
     session_id: String,
     input: Option<String>,
 ) -> PhpResult<ResumeSessionConfig> {
-    let mut value = parse_json_option(input)?;
-    if let Value::Object(ref mut object) = value {
-        object.insert("sessionId".to_string(), Value::String(session_id));
-    }
+    let value = parse_json_option(input)?;
 
     let permission_policy =
         string_at(&value, "permissionPolicy").or_else(|| string_at(&value, "permission_policy"));
-    let mut config: ResumeSessionConfig = serde_json::from_value(value).map_err(to_php_error)?;
+    let mut config = resume_config_from_value(SessionId::from(session_id), &value)?;
 
     config = match permission_policy.as_deref() {
         Some("approve_all") | Some("approveAll") => config.approve_all_permissions(),
@@ -206,17 +199,195 @@ pub fn set_model_options(input: Option<String>) -> PhpResult<Option<SetModelOpti
 
 fn parse_transport(value: &Value) -> PhpResult<Transport> {
     let kind = string_at(value, "type").unwrap_or_else(|| "stdio".to_string());
+    let connection_token = string_at(value, "connectionToken")
+        .or_else(|| string_at(value, "connection_token"))
+        .or_else(|| {
+            string_at(value, "tcpConnectionToken")
+                .or_else(|| string_at(value, "tcp_connection_token"))
+        });
     match kind.as_str() {
         "stdio" => Ok(Transport::Stdio),
         "tcp" => Ok(Transport::Tcp {
             port: u16::try_from(u64_at(value, "port").unwrap_or(0)).map_err(to_php_error)?,
+            connection_token,
         }),
         "external" => Ok(Transport::External {
             host: string_at(value, "host").unwrap_or_else(|| "127.0.0.1".to_string()),
             port: u16::try_from(u64_at(value, "port").unwrap_or(0)).map_err(to_php_error)?,
+            connection_token,
         }),
         other => Err(to_php_error(format!("unsupported transport type: {other}"))),
     }
+}
+
+fn session_config_from_value(value: &Value) -> PhpResult<SessionConfig> {
+    let mut config = SessionConfig::default();
+    apply_session_config(value, &mut config)?;
+    Ok(config)
+}
+
+fn resume_config_from_value(
+    session_id: SessionId,
+    value: &Value,
+) -> PhpResult<ResumeSessionConfig> {
+    let mut config = ResumeSessionConfig::new(session_id);
+
+    if let Some(client_name) = string_at(value, "clientName") {
+        config = config.with_client_name(client_name);
+    }
+    if let Some(reasoning_effort) = string_at(value, "reasoningEffort") {
+        config = config.with_reasoning_effort(reasoning_effort);
+    }
+    if let Some(context_tier) = string_at(value, "contextTier") {
+        config = config.with_context_tier(context_tier);
+    }
+    if let Some(streaming) = bool_at(value, "streaming") {
+        config = config.with_streaming(streaming);
+    }
+    if let Some(system_message) = value.get("systemMessage") {
+        config = config.with_system_message(from_value(system_message)?);
+    }
+    if let Some(tools) = string_vec_at(value, "availableTools") {
+        config = config.with_available_tools(tools);
+    }
+    if let Some(tools) = string_vec_at(value, "excludedTools") {
+        config = config.with_excluded_tools(tools);
+    }
+    if let Some(servers) = value.get("mcpServers") {
+        config = config.with_mcp_servers(from_value(servers)?);
+    }
+    if let Some(enabled) = bool_at(value, "enableConfigDiscovery") {
+        config = config.with_enable_config_discovery(enabled);
+    }
+    if let Some(paths) = string_vec_at(value, "skillDirectories") {
+        config = config.with_skill_directories(paths.into_iter().map(PathBuf::from));
+    }
+    if let Some(paths) = string_vec_at(value, "instructionDirectories") {
+        config = config.with_instruction_directories(paths.into_iter().map(PathBuf::from));
+    }
+    if let Some(skills) = string_vec_at(value, "disabledSkills") {
+        config = config.with_disabled_skills(skills);
+    }
+    if let Some(agents) = value.get("customAgents") {
+        config = config.with_custom_agents(from_value::<Vec<CustomAgentConfig>>(agents)?);
+    }
+    if let Some(agent) = value.get("defaultAgent") {
+        config = config.with_default_agent(from_value::<DefaultAgentConfig>(agent)?);
+    }
+    if let Some(agent) = string_at(value, "agent") {
+        config = config.with_agent(agent);
+    }
+    if let Some(sessions) = value.get("infiniteSessions") {
+        config = config.with_infinite_sessions(from_value::<InfiniteSessionConfig>(sessions)?);
+    }
+    if let Some(provider) = value.get("provider") {
+        config = config.with_provider(from_value::<ProviderConfig>(provider)?);
+    }
+    if let Some(enabled) = bool_at(value, "enableSessionTelemetry") {
+        config = config.with_enable_session_telemetry(enabled);
+    }
+    if let Some(config_dir) = string_at(value, "configDir") {
+        config = config.with_config_directory(PathBuf::from(config_dir));
+    }
+    if let Some(working_directory) = string_at(value, "workingDirectory") {
+        config = config.with_working_directory(PathBuf::from(working_directory));
+    }
+    if let Some(token) = string_at(value, "gitHubToken").or_else(|| string_at(value, "githubToken"))
+    {
+        config = config.with_github_token(token);
+    }
+    if let Some(include) = bool_at(value, "includeSubAgentStreamingEvents") {
+        config = config.with_include_sub_agent_streaming_events(include);
+    }
+
+    Ok(config)
+}
+
+fn apply_session_config(value: &Value, config: &mut SessionConfig) -> PhpResult<()> {
+    if let Some(session_id) = string_at(value, "sessionId") {
+        config.session_id = Some(SessionId::from(session_id));
+    }
+    if let Some(model) = string_at(value, "model") {
+        *config = std::mem::take(config).with_model(model);
+    }
+    if let Some(client_name) = string_at(value, "clientName") {
+        *config = std::mem::take(config).with_client_name(client_name);
+    }
+    if let Some(reasoning_effort) = string_at(value, "reasoningEffort") {
+        *config = std::mem::take(config).with_reasoning_effort(reasoning_effort);
+    }
+    if let Some(context_tier) = string_at(value, "contextTier") {
+        *config = std::mem::take(config).with_context_tier(context_tier);
+    }
+    if let Some(streaming) = bool_at(value, "streaming") {
+        *config = std::mem::take(config).with_streaming(streaming);
+    }
+    if let Some(system_message) = value.get("systemMessage") {
+        *config = std::mem::take(config).with_system_message(from_value(system_message)?);
+    }
+    if let Some(tools) = string_vec_at(value, "availableTools") {
+        *config = std::mem::take(config).with_available_tools(tools);
+    }
+    if let Some(tools) = string_vec_at(value, "excludedTools") {
+        *config = std::mem::take(config).with_excluded_tools(tools);
+    }
+    if let Some(servers) = value.get("mcpServers") {
+        *config = std::mem::take(config).with_mcp_servers(from_value(servers)?);
+    }
+    if let Some(enabled) = bool_at(value, "enableConfigDiscovery") {
+        *config = std::mem::take(config).with_enable_config_discovery(enabled);
+    }
+    if let Some(paths) = string_vec_at(value, "skillDirectories") {
+        *config =
+            std::mem::take(config).with_skill_directories(paths.into_iter().map(PathBuf::from));
+    }
+    if let Some(paths) = string_vec_at(value, "instructionDirectories") {
+        *config = std::mem::take(config)
+            .with_instruction_directories(paths.into_iter().map(PathBuf::from));
+    }
+    if let Some(skills) = string_vec_at(value, "disabledSkills") {
+        *config = std::mem::take(config).with_disabled_skills(skills);
+    }
+    if let Some(agents) = value.get("customAgents") {
+        *config = std::mem::take(config)
+            .with_custom_agents(from_value::<Vec<CustomAgentConfig>>(agents)?);
+    }
+    if let Some(agent) = value.get("defaultAgent") {
+        *config =
+            std::mem::take(config).with_default_agent(from_value::<DefaultAgentConfig>(agent)?);
+    }
+    if let Some(agent) = string_at(value, "agent") {
+        *config = std::mem::take(config).with_agent(agent);
+    }
+    if let Some(sessions) = value.get("infiniteSessions") {
+        *config = std::mem::take(config)
+            .with_infinite_sessions(from_value::<InfiniteSessionConfig>(sessions)?);
+    }
+    if let Some(provider) = value.get("provider") {
+        *config = std::mem::take(config).with_provider(from_value::<ProviderConfig>(provider)?);
+    }
+    if let Some(enabled) = bool_at(value, "enableSessionTelemetry") {
+        *config = std::mem::take(config).with_enable_session_telemetry(enabled);
+    }
+    if let Some(config_dir) = string_at(value, "configDir") {
+        *config = std::mem::take(config).with_config_directory(PathBuf::from(config_dir));
+    }
+    if let Some(working_directory) = string_at(value, "workingDirectory") {
+        *config = std::mem::take(config).with_working_directory(PathBuf::from(working_directory));
+    }
+    if let Some(token) = string_at(value, "gitHubToken").or_else(|| string_at(value, "githubToken"))
+    {
+        *config = std::mem::take(config).with_github_token(token);
+    }
+    if let Some(include) = bool_at(value, "includeSubAgentStreamingEvents") {
+        *config = std::mem::take(config).with_include_sub_agent_streaming_events(include);
+    }
+
+    Ok(())
+}
+
+fn from_value<T: serde::de::DeserializeOwned>(value: &Value) -> PhpResult<T> {
+    serde_json::from_value(value.clone()).map_err(to_php_error)
 }
 
 fn parse_telemetry(value: &Value) -> PhpResult<Option<TelemetryConfig>> {
@@ -327,9 +498,9 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(options.cwd, PathBuf::from("/tmp"));
+        assert_eq!(options.working_directory, PathBuf::from("/tmp"));
         assert_eq!(options.extra_args, vec!["--quiet".to_string()]);
-        assert!(matches!(options.transport, Transport::Tcp { port: 0 }));
+        assert!(matches!(options.transport, Transport::Tcp { port: 0, .. }));
         assert_eq!(options.log_level, Some(LogLevel::Debug));
     }
 

@@ -1,6 +1,6 @@
 [package]
 name = "ext_php_copilot"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 license = "MIT"
 description = "PHP 8.3 extension for controlling GitHub Copilot through the Rust Copilot SDK."
@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ext-php-rs = "=0.15.13"
-github-copilot-sdk = { version = "1.0.0-beta.4", features = ["embedded-cli"] }
+github-copilot-sdk = { version = "1.0.1", features = ["bundled-cli"] }
 serde = "1"
 serde_json = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "time"] }

@@ -111,7 +111,7 @@ impl CopilotSession {
             .as_ref()
             .ok_or_else(|| to_php_error("Copilot session is disconnected"))?;
         let messages = runtime()
-            .block_on(session.get_messages())
+            .block_on(session.get_events())
             .map_err(to_php_error)?;
 
         to_json(&messages)

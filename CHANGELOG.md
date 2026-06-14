@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2026-06-14
+
+### Changed
+
+- Updated `github-copilot-sdk` from `1.0.0-beta.4` to `1.0.1` and switched the SDK feature from `embedded-cli` to `bundled-cli`.
+
 ## [0.1.3] - 2026-05-16
 
 ### Changed
