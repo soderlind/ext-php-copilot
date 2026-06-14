@@ -32,9 +32,22 @@ php -d extension=target/debug/libext_php_copilot.dylib examples/basic.php
 
 On Linux the extension suffix is `.so`; on Windows it is `.dll`.
 
+## GitHub Copilot Token
+
+The PHP wrapper accepts a GitHub token through `GITHUB_COPILOT_TOKEN`. Use an account with an active GitHub Copilot entitlement.
+
+For local development, the simplest path is GitHub CLI:
+
+```sh
+gh auth login
+printf 'GITHUB_COPILOT_TOKEN=%s\n' "$(gh auth token)" > .env
+```
+
+The `.env` file is ignored by Git and is loaded by `tests/acceptance.php`. For deployed apps, set `GITHUB_COPILOT_TOKEN` through the host secret manager or environment configuration instead of writing it to disk.
+
 ## Acceptance Test
 
-Create a local `.env` file with a Copilot-enabled token. The file is ignored by Git.
+Create a local `.env` file with a Copilot-enabled token:
 
 ```dotenv
 GITHUB_COPILOT_TOKEN=your_token_here
