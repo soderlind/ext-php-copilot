@@ -7,20 +7,20 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Version tag to publish, for example v0.1.4'
+        description: 'Version tag to publish, for example v0.1.5'
         required: true
         type: string
       copilot_cli_version:
         description: 'GitHub Copilot CLI version to embed'
         required: true
-        default: '1.0.48'
+        default: '1.0.62'
         type: string
 
 permissions:
   contents: read
 
 env:
-  COPILOT_CLI_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.copilot_cli_version || '1.0.48' }}
+  COPILOT_CLI_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.copilot_cli_version || '1.0.62' }}
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
 jobs:

@@ -1,6 +1,14 @@
+<!-- markdownlint-disable MD013 MD024 -->
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [0.1.5] - 2026-06-14
+
+### Changed
+
+- Updated the default bundled GitHub Copilot CLI version from `1.0.48` to `1.0.62`.
 
 ## [0.1.4] - 2026-06-14
 

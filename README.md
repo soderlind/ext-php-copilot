@@ -21,7 +21,7 @@ cargo build
 Build with a bundled Copilot CLI:
 
 ```sh
-COPILOT_CLI_VERSION=1.0.48 cargo build --release
+COPILOT_CLI_VERSION=1.0.62 cargo build --release
 ```
 
 Run a PHP script with the debug extension on macOS:
@@ -66,9 +66,12 @@ Version tags build downloadable release archives for Linux, macOS, and Windows. 
 - `no-cli`: requires `COPILOT_CLI_PATH` or a GitHub Copilot CLI available on `PATH`.
 - `embedded-cli`: uses the SDK `bundled-cli` feature to bundle the GitHub Copilot CLI selected by `COPILOT_CLI_VERSION` in the release workflow.
 
+The release workflow currently defaults `COPILOT_CLI_VERSION` to GitHub Copilot CLI `1.0.62`.
+
 Available releases are published on GitHub:
 
-- [v0.1.4](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.4) latest, updates to `github-copilot-sdk` 1.0.1 and the SDK `bundled-cli` feature.
+- [v0.1.5](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.5) latest, embeds GitHub Copilot CLI `1.0.62` by default in release builds.
+- [v0.1.4](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.4) updates to `github-copilot-sdk` 1.0.1 and the SDK `bundled-cli` feature.
 - [v0.1.3](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.3) embeds GitHub Copilot CLI `1.0.48` in the `embedded-cli` archives.
 - [v0.1.2](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.2) adds downloadable release archives for each OS and variant.
 - [v0.1.1](https://github.com/soderlind/ext-php-copilot/releases/tag/v0.1.1) includes the initial CI portability fixes.
